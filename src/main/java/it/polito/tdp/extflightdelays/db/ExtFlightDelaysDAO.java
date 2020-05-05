@@ -7,9 +7,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import it.polito.tdp.extflightdelays.model.Airline;
 import it.polito.tdp.extflightdelays.model.Airport;
+import it.polito.tdp.extflightdelays.model.Collegamento;
 import it.polito.tdp.extflightdelays.model.Flight;
 
 public class ExtFlightDelaysDAO {
@@ -62,6 +64,65 @@ public class ExtFlightDelaysDAO {
 			throw new RuntimeException("Error Connection Database");
 		}
 	}
+
+	public void fillIdMap(Map<Integer, Airport> idMap) {
+		String sql = "SELECT * FROM airports";
+		
+
+		try {
+			Connection conn = ConnectDB.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			ResultSet rs = st.executeQuery();
+
+			while (rs.next()) {
+				if (!idMap.containsKey(rs.getInt("ID"))) {
+					Airport airport = new Airport(rs.getInt("ID"), rs.getString("IATA_CODE"), rs.getString("AIRPORT"),
+							rs.getString("CITY"), rs.getString("STATE"), rs.getString("COUNTRY"),
+							rs.getDouble("LATITUDE"), rs.getDouble("LONGITUDE"), rs.getDouble("TIMEZONE_OFFSET"));
+					idMap.put(airport.getId(), airport);
+				}
+			}
+
+			conn.close();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+	}
+	
+	public List<Collegamento> getCollegamenti(){
+		String sql = "SELECT  ORIGIN_AIRPORT_ID AS aer1, DESTINATION_AIRPORT_ID AS aer2, avg(DISTANCE) as dist " + 
+				"FROM flights WHERE ORIGIN_AIRPORT_ID > DESTINATION_AIRPORT_ID " + 
+				"GROUP BY ORIGIN_AIRPORT_ID, DESTINATION_AIRPORT_ID ";
+		List <Collegamento> result = new LinkedList<Collegamento>();
+		
+		try {
+			Connection conn = ConnectDB.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			ResultSet rs = st.executeQuery();
+
+			while (rs.next()) {
+				Collegamento coll = new Collegamento (rs.getInt("aer1"), rs.getInt("aer2"), rs.getDouble("dist"));
+				result.add(coll);
+			}
+
+			conn.close();
+			return result;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+		
+		
+
+	}
+
+	
+	
 
 	public List<Flight> loadAllFlights() {
 		String sql = "SELECT * FROM flights";
